@@ -5,14 +5,26 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder && powershell -Command \"New-Item -ItemType Directory -Force -Path 'Portable'; Copy-Item 'dist/*.exe' -Destination 'Portable' -Force; if (Test-Path 'apps') { Copy-Item 'apps' -Destination 'Portable' -Recurse -Force }; if (Test-Path 'assets') { Copy-Item 'assets' -Destination 'Portable' -Recurse -Force }; Write-Host 'Portable build completed successfully'\"",
+    "dist": "electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "build": {
     "appId": "com.launcher.app",
     "productName": "Xperian App Launcher",
+    "icon": "icon.png",
+    "compression": "maximum",
+    "electronLanguages": [
+      "en",
+      "tr"
+    ],
+    "files": [
+      "**/*",
+      "!apps",
+      "!assets",
+      "!dist"
+    ],
     "win": {
-      "target": "portable"
+      "target": "nsis"
     }
   },
   "keywords": [],
@@ -22,8 +34,5 @@
   "devDependencies": {
     "electron": "^39.2.6",
     "electron-builder": "^26.0.12"
-  },
-  "dependencies": {
-    "ini": "^6.0.0"
   }
 }

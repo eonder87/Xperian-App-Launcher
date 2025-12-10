@@ -1,7 +1,38 @@
 const { ipcRenderer } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const ini = require('ini');
+// Custom INI Parser to avoid dependencies
+function parseIni(str) {
+    const result = {};
+    let currentSection = null;
+
+    const lines = str.split(/\r?\n/);
+    lines.forEach(line => {
+        line = line.trim();
+        if (!line || line.startsWith(';') || line.startsWith('#')) return; // Skip empty/comments
+
+        if (line.startsWith('[') && line.endsWith(']')) {
+            const sectionName = line.slice(1, -1).trim();
+            currentSection = sectionName;
+            if (!result[currentSection]) result[currentSection] = {};
+        } else if (line.includes('=')) {
+            const idx = line.indexOf('=');
+            const key = line.slice(0, idx).trim();
+            let val = line.slice(idx + 1).trim();
+            // Remove quotes if present
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                val = val.slice(1, -1);
+            }
+
+            if (currentSection) {
+                result[currentSection][key] = val;
+            } else {
+                result[key] = val;
+            }
+        }
+    });
+    return result;
+}
 
 // Apps container
 let apps = [];
@@ -10,6 +41,45 @@ let currentIndex = 0;
 // Elements
 const wheel = document.getElementById('wheel');
 const bgLayer1 = document.getElementById('background-layer');
+
+// --- LOCALIZATION ---
+const translations = {
+    en: {
+        appsFolderNotFound: 'Apps Folder Not Found',
+        noAppsFound: 'No Apps Found',
+        launching: 'LAUNCHING...'
+    },
+    tr: {
+        appsFolderNotFound: 'Apps Klasörü Bulunamadı',
+        noAppsFound: 'Uygulama Bulunamadı',
+        launching: 'BAŞLATILIYOR...'
+    }
+};
+
+// Language State
+let userLang = localStorage.getItem('app_lang') || (navigator.language.startsWith('tr') ? 'tr' : 'en');
+let t = translations[userLang];
+
+// Update UI Text helper
+function updateUITexts() {
+    t = translations[userLang];
+
+    // Update Button Text
+    const langBtn = document.getElementById('lang-btn');
+    if (langBtn) langBtn.innerText = userLang.toUpperCase();
+
+    // Update Dynamic Texts (re-render or specific ID updates)
+    // If we have "No Apps" or "Error" currently shown in the wheel, we might need to refresh apps
+    // But simplest is to just reload apps if the list is empty/error
+
+    const appsEmpty = apps.length === 1 && (apps[0].id === 'error' || apps[0].id === 'demo');
+    if (appsEmpty) {
+        // Force refresh apps list to update localized name
+        apps[0].name = apps[0].id === 'error' ? t.appsFolderNotFound : t.noAppsFound;
+        renderWheelItems();
+        updateVisuals();
+    }
+}
 const bgLayer2 = document.getElementById('background-layer-2');
 let activeBgLayer = 1; // Track which layer is currently visible
 let bgUpdateTimeout = null; // For debouncing
@@ -95,7 +165,7 @@ async function loadAppsFromConfig(basePath) {
     if (!fs.existsSync(appsDir)) {
         apps = [{
             id: 'error',
-            name: 'Apps Folder Not Found',
+            name: t.appsFolderNotFound,
             path: '',
             bgGradient: gradients[0],
             logo: null
@@ -112,7 +182,7 @@ async function loadAppsFromConfig(basePath) {
         try {
             const filePath = path.join(appsDir, file);
             const content = fs.readFileSync(filePath, 'utf-8');
-            const config = ini.parse(content);
+            const config = parseIni(content);
 
             if (config.Application && config.Application.Platform) {
                 const defaultGradient = gradients[index % gradients.length];
@@ -152,7 +222,7 @@ async function loadAppsFromConfig(basePath) {
     if (apps.length === 0) {
         apps.push({
             id: 'demo',
-            name: 'No Apps Found',
+            name: t.noAppsFound,
             path: '',
             bgGradient: gradients[0],
             logo: null
@@ -213,6 +283,18 @@ async function init() {
         exitBtn.addEventListener('click', () => {
             soundManager.playSelect(); // Sound on exit click
             ipcRenderer.send('quit-app');
+        });
+    }
+
+    // Language Toggle
+    const langBtn = document.getElementById('lang-btn');
+    if (langBtn) {
+        langBtn.innerText = userLang.toUpperCase();
+        langBtn.addEventListener('click', () => {
+            userLang = userLang === 'en' ? 'tr' : 'en';
+            localStorage.setItem('app_lang', userLang);
+            soundManager.playSelect();
+            updateUITexts();
         });
     }
 
@@ -459,7 +541,7 @@ function launchCurrentApp() {
     console.log("Launching", app.name);
 
     const originalText = appTitle.innerText;
-    appTitle.innerText = "LAUNCHING...";
+    appTitle.innerText = t.launching;
 
     setTimeout(() => {
         appTitle.innerText = originalText;
