@@ -9,10 +9,67 @@ let currentIndex = 0;
 
 // Elements
 const wheel = document.getElementById('wheel');
-const bgLayer = document.getElementById('background-layer');
+const bgLayer1 = document.getElementById('background-layer');
+const bgLayer2 = document.getElementById('background-layer-2');
+let activeBgLayer = 1; // Track which layer is currently visible
+let bgUpdateTimeout = null; // For debouncing
 const appTitle = document.getElementById('app-title');
 const clock = document.getElementById('clock');
 const exitBtn = document.getElementById('exit-btn');
+
+// --- SOUND MANAGER (Web Audio API) ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const soundManager = {
+    playMove: () => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine'; // Soft click
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    },
+    playSelect: () => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        // Rich chord effect for selection
+        const now = audioCtx.currentTime;
+        const freqs = [440, 554, 659]; // A major chord
+        freqs.forEach((f, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(f, now);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(now + 0.6);
+        });
+    },
+    warmUp: () => {
+        // Play a silent sound to wake up the AudioContext immediately
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0, audioCtx.currentTime); // SILENT
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+};
+
+// --- GAMEPAD STATE ---
+let lastGamepadTime = 0;
+const GAMEPAD_THRESHOLD = 0.5;
+const GAMEPAD_COOLDOWN = 150; // ms
 
 // Gradients for fallback
 const gradients = [
@@ -103,24 +160,64 @@ async function loadAppsFromConfig(basePath) {
     }
 }
 
+function preloadAssets() {
+    console.log("Preloading and decoding assets...");
+    apps.forEach(app => {
+        // Helper to decode
+        const decodeImg = (src) => {
+            if (!src) return;
+            const img = new Image();
+            img.src = src.replace(/\\/g, '/');
+            // Explicitly verify decode to force GPU upload
+            if (img.decode) {
+                img.decode().catch(e => console.warn("Could not decode image:", src));
+            }
+        };
+
+        decodeImg(app.background);
+        decodeImg(app.logo);
+    });
+}
+
 async function init() {
     // 1. Get the Correct Root Path
     const basePath = await ipcRenderer.invoke('get-base-path');
     console.log("Base Path:", basePath);
 
     // 2. Load Apps
+    // 2. Load Apps
     await loadAppsFromConfig(basePath);
 
+    // 2.1 Preload Images for smooth performance
+    preloadAssets();
+
+    // 3. Render
     // 3. Render
     renderWheelItems(); // Generate DOM elements once
+
+    // 4. Warm up systems (Audio & GPU)
+    soundManager.warmUp();
+
+    // Force a layout recalc (Reflow) to ensure GPU layers are prepped
+    document.body.offsetHeight;
 
     setTimeout(() => updateVisuals(), 100);
     startClock();
 
+    // Trigger updateVisuals again slightly later to ensure transitions are "hot"
+    setTimeout(() => updateVisuals(), 500);
+
     document.addEventListener('keydown', handleInput);
+
     if (exitBtn) {
-        exitBtn.addEventListener('click', () => ipcRenderer.send('quit-app'));
+        exitBtn.addEventListener('click', () => {
+            soundManager.playSelect(); // Sound on exit click
+            ipcRenderer.send('quit-app');
+        });
     }
+
+    // Start Gamepad Loop
+    requestAnimationFrame(pollGamepad);
 }
 
 function renderWheelItems() {
@@ -186,6 +283,7 @@ function updateVisuals() {
                 transform = `translateX(0) translateY(-120px) scale(1.8)`;
                 zIndex = 10;
                 opacity = 1;
+                item.classList.add('active'); // Add active hook for CSS
             } else if (Math.abs(dist) === 1) {
                 // NEIGHBORS (1st)
                 // Spread out to ~18vw (approx 35-40% of screen combined with center)
@@ -197,6 +295,7 @@ function updateVisuals() {
                 transform = `translateX(${tx}vw) translateY(${ty}px) scale(1.2) rotate(${rot}deg)`;
                 zIndex = 5;
                 opacity = 1; // Full opacity for better visibility
+                item.classList.remove('active');
             } else if (Math.abs(dist) === 2) {
                 // OUTER (2nd)
                 // Spread out to ~36vw (approx 72-80% total width span)
@@ -208,7 +307,10 @@ function updateVisuals() {
                 transform = `translateX(${tx}vw) translateY(${ty}px) scale(0.8) rotate(${rot}deg)`;
                 zIndex = 1;
                 opacity = 0.8;
+                item.classList.remove('active');
             }
+        } else {
+            item.classList.remove('active');
         }
 
         // Apply styles
@@ -222,35 +324,54 @@ function updateVisuals() {
     const app = apps[currentIndex];
 
     // Background
-    if (app.background && fs.existsSync(app.background)) {
-        // Check if bg actually changed to avoid flicker
-        const newBg = `url('${app.background.replace(/\\/g, '/')}')`;
-        if (bgLayer.style.backgroundImage !== newBg) {
-            bgLayer.style.backgroundImage = newBg;
-        }
-    } else {
-        bgLayer.style.backgroundImage = 'none';
-        bgLayer.style.background = app.bgGradient;
-    }
+    // Background (DEBOUNCED & DUAL BUFFERED)
+    // Only update background if user stops scrolling for 150ms
+    clearTimeout(bgUpdateTimeout);
+    bgUpdateTimeout = setTimeout(() => {
+        updateBackground(app);
+    }, 150);
 
     // Title
     if (appTitle.innerText !== app.name) {
         appTitle.innerText = app.name;
+        // Optimization: Do not re-trigger animation on every single scroll if it's too fast
+        // But for title it's usually fine.
         appTitle.style.animation = 'none';
         appTitle.offsetHeight;
         appTitle.style.animation = 'slideDown 0.5s forwards';
     }
 }
 
+function updateBackground(app) {
+    const nextLayer = activeBgLayer === 1 ? bgLayer2 : bgLayer1;
+    const currentLayer = activeBgLayer === 1 ? bgLayer1 : bgLayer2;
+
+    if (app.background && fs.existsSync(app.background)) {
+        const newBg = `url('${app.background.replace(/\\/g, '/')}')`;
+        // Optimization: Don't swap if same image
+        if (nextLayer.style.backgroundImage !== newBg && currentLayer.style.backgroundImage !== newBg) {
+            nextLayer.style.backgroundImage = newBg;
+        }
+    } else {
+        nextLayer.style.backgroundImage = 'none';
+        nextLayer.style.background = app.bgGradient;
+    }
+
+    // Swap Opacity
+    nextLayer.classList.add('active');
+    currentLayer.classList.remove('active');
+
+    // Toggle state
+    activeBgLayer = activeBgLayer === 1 ? 2 : 1;
+}
+
+
+
 function handleInput(e) {
     if (e.key === 'ArrowRight') {
-        currentIndex++;
-        if (currentIndex >= apps.length) currentIndex = 0;
-        updateVisuals();
+        moveRight();
     } else if (e.key === 'ArrowLeft') {
-        currentIndex--;
-        if (currentIndex < 0) currentIndex = apps.length - 1;
-        updateVisuals();
+        moveLeft();
     } else if (e.key === 'Enter') {
         launchCurrentApp();
     } else if (e.key === 'Escape') {
@@ -258,10 +379,83 @@ function handleInput(e) {
     }
 }
 
+// Separated movement logic for reuse by Gamepad
+// Separated movement logic for reuse by Gamepad
+let isUpdating = false;
+
+function scheduleUpdate() {
+    if (isUpdating) return;
+    isUpdating = true;
+    requestAnimationFrame(() => {
+        updateVisuals();
+        isUpdating = false;
+    });
+}
+
+function moveRight() {
+    currentIndex++;
+    if (currentIndex >= apps.length) currentIndex = 0;
+    soundManager.playMove(); // SFX
+    scheduleUpdate();
+}
+
+function moveLeft() {
+    currentIndex--;
+    if (currentIndex < 0) currentIndex = apps.length - 1;
+    soundManager.playMove(); // SFX
+    scheduleUpdate();
+}
+
+// --- GAMEPAD POLLING ---
+function pollGamepad() {
+    const gamepads = navigator.getGamepads();
+    if (!gamepads) {
+        requestAnimationFrame(pollGamepad);
+        return;
+    }
+
+    // Check first active gamepad
+    const gp = gamepads[0];
+    if (gp) {
+        const now = Date.now();
+        if (now - lastGamepadTime > GAMEPAD_COOLDOWN) {
+            // Axes (Stick)
+            // Axis 0 is usually Left Stick X (-1 Left, 1 Right)
+            if (gp.axes[0] > GAMEPAD_THRESHOLD) {
+                moveRight();
+                lastGamepadTime = now;
+            } else if (gp.axes[0] < -GAMEPAD_THRESHOLD) {
+                moveLeft();
+                lastGamepadTime = now;
+            }
+
+            // D-Pad is often mapped to buttons 14 (Left) and 15 (Right) or Axes depending on driver.
+            // Standard mapping: 12=Up, 13=Down, 14=Left, 15=Right
+            if (gp.buttons[15] && gp.buttons[15].pressed) {
+                moveRight();
+                lastGamepadTime = now;
+            } else if (gp.buttons[14] && gp.buttons[14].pressed) {
+                moveLeft();
+                lastGamepadTime = now;
+            }
+
+            // A Button (Selection) - Usually button 0
+            if (gp.buttons[0] && gp.buttons[0].pressed) {
+                // Debounce slightly longer for selection to avoid double launch ? 
+                // Actually logic is safe enough but let's update time
+                launchCurrentApp();
+                lastGamepadTime = now + 500; // Longer cooldown after launch
+            }
+        }
+    }
+    requestAnimationFrame(pollGamepad);
+}
+
 function launchCurrentApp() {
     const app = apps[currentIndex];
     if (!app.path) return;
 
+    soundManager.playSelect(); // SFX
     console.log("Launching", app.name);
 
     const originalText = appTitle.innerText;

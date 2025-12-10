@@ -25,9 +25,15 @@ body {
     background-size: 100% 100% !important;
     background-position: center;
     background-repeat: no-repeat;
-    transition: background-image 0.5s ease-out;
+    /* Opacity transition is much cheaper (GPU) than background-image transition */
+    transition: opacity 0.6s ease-in-out;
     z-index: -2;
     filter: brightness(0.6);
+    opacity: 0;
+}
+
+.background-layer.active {
+    opacity: 1;
 }
 
 /* Vignette */
@@ -144,6 +150,10 @@ body {
     opacity: 0;
     /* Başlangıçta gizli */
     transform-origin: center bottom;
+    /* Performance Optimizations */
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
 }
 
 /* Logo Styling */
@@ -154,6 +164,28 @@ body {
     /* Dark shadow for depth + Light glow for separation from dark backgrounds */
     filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 5px rgba(255, 255, 255, 0.4));
     transition: all 0.4s;
+    /* Reflection Effect */
+    -webkit-box-reflect: below 10px linear-gradient(to bottom, rgba(0, 0, 0, 0) 70%, rgba(255, 255, 255, 0.3));
+}
+
+/* Active Item Glow */
+.wheel-item.active img {
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 40px rgba(0, 229, 255, 0.4));
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+
+    0%,
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.6));
+    }
+
+    50% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 50px rgba(0, 229, 255, 0.6));
+    }
 }
 
 .fallback-text {
