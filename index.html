@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Universal Launcher</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Dynamic Background -->
+    <div id="background-layer" class="background-layer"></div>
+    <div class="vignette"></div>
+
+    <!-- Top Info Bar -->
+    <div class="top-bar">
+        <div class="status-indicators">
+            <!-- Dynamic App Title Here -->
+            <h1 id="app-title" class="app-title">APP NAME</h1>
+        </div>
+        <div class="right-cluster">
+            <div id="clock" class="clock">00:00</div>
+            <button id="exit-btn" class="exit-btn">✕</button>
+        </div>
+    </div>
+
+    <!-- Main Content Area Removed (Visual focus on Background & Wheel) -->
+
+    <!-- Navigation Wheel (Centered Horizontal) -->
+    <div class="wheel-wrapper">
+        <div id="wheel" class="wheel">
+            <!-- Items will be generated here -->
+        </div>
+        <!-- Removed selection-indicator for cleaner look -->
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+
+</html>

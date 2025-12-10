@@ -1,0 +1,179 @@
+:root {
+    --primary: #fff;
+    --accent: #00e5ff;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    color: var(--primary);
+    font-family: 'Outfit', sans-serif;
+    background: #000;
+    user-select: none;
+}
+
+/* Background Layer */
+.background-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: 100% 100% !important;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: background-image 0.5s ease-out;
+    z-index: -2;
+    filter: brightness(0.6);
+}
+
+/* Vignette */
+.vignette {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, transparent 40%, #000 120%);
+    z-index: -1;
+}
+
+/* Header & Title */
+.top-bar {
+    position: absolute;
+    top: 0;
+    width: 90%;
+    left: 5%;
+    height: 150px;
+    /* Biraz daha yer açalım */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+}
+
+.app-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+    background: linear-gradient(to bottom, #fff, #bbb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    opacity: 0;
+    animation: slideDown 0.5s forwards;
+}
+
+.right-cluster {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.clock {
+    font-size: 1.5rem;
+    font-weight: 300;
+    opacity: 0.8;
+}
+
+.exit-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.exit-btn:hover {
+    background: #e74c3c;
+    transform: rotate(90deg);
+}
+
+/* Wheel Container - Bottom Center */
+.wheel-wrapper {
+    position: absolute;
+    bottom: -50px;
+    /* Ekranın biraz altına batıralım */
+    left: 0;
+    width: 100%;
+    height: 350px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    /* Öğeler altta */
+    z-index: 10;
+    perspective: 1000px;
+}
+
+.wheel {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    /* Flex yerine serbest dolaşım kullanacağız JS ile */
+}
+
+/* Wheel Item */
+.wheel-item {
+    position: absolute;
+    /* Önemli: JS ile koordinat vereceğiz */
+    bottom: 50px;
+    left: 50%;
+    /* Ortadan başlat */
+    width: 200px;
+    height: 200px;
+    margin-left: -100px;
+    /* Tam ortalamak için width/2 kadar sola çek */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity: 0;
+    /* Başlangıçta gizli */
+    transform-origin: center bottom;
+}
+
+/* Logo Styling */
+.wheel-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* Dark shadow for depth + Light glow for separation from dark backgrounds */
+    filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 5px rgba(255, 255, 255, 0.4));
+    transition: all 0.4s;
+}
+
+.fallback-text {
+    font-size: 8rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(0, 229, 255, 0.5), 0 0 40px rgba(0, 0, 0, 0.8);
+    font-family: sans-serif;
+    opacity: 0.8;
+}
+
+/* Animations */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
