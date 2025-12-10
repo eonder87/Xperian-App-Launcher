@@ -37,6 +37,7 @@ function parseIni(str) {
 // Apps container
 let apps = [];
 let currentIndex = 0;
+let appBasePath = '';
 
 // Elements
 const wheel = document.getElementById('wheel');
@@ -205,6 +206,14 @@ async function loadAppsFromConfig(basePath) {
                     return assetPath; // Return original if not found, let image error handler catch it
                 };
 
+                // Helper to prepare path for DOM (Relative to index.html)
+                const getDOMPath = (absPath) => {
+                    if (!absPath) return '';
+                    // Return relative path from current HTML location to file
+                    // This handles cases where assets are external (../../assets) or internal
+                    return path.relative(__dirname, absPath).replace(/\\/g, '/');
+                };
+
                 apps.push({
                     id: file.replace('.ini', '').replace('.cfg', ''),
                     name: config.Application.Platform,
@@ -212,6 +221,9 @@ async function loadAppsFromConfig(basePath) {
                     logo: resolveAssetPath(clearLogo),
                     background: resolveAssetPath(background),
                     bgGradient: defaultGradient,
+                    // Pre-calculate DOM paths
+                    logoSrc: getDOMPath(resolveAssetPath(clearLogo)),
+                    bgSrc: getDOMPath(resolveAssetPath(background))
                 });
             }
         } catch (err) {
@@ -225,7 +237,10 @@ async function loadAppsFromConfig(basePath) {
             name: t.noAppsFound,
             path: '',
             bgGradient: gradients[0],
-            logo: null
+            logo: null,
+            logoSrc: '',
+            background: null,
+            bgSrc: ''
         });
     }
 }
@@ -237,31 +252,30 @@ function preloadAssets() {
         const decodeImg = (src) => {
             if (!src) return;
             const img = new Image();
-            img.src = src.replace(/\\/g, '/');
+            img.src = src; // Already DOM friendly
             // Explicitly verify decode to force GPU upload
             if (img.decode) {
                 img.decode().catch(e => console.warn("Could not decode image:", src));
             }
         };
 
-        decodeImg(app.background);
-        decodeImg(app.logo);
+        decodeImg(app.bgSrc);
+        decodeImg(app.logoSrc);
     });
 }
 
 async function init() {
     // 1. Get the Correct Root Path
-    const basePath = await ipcRenderer.invoke('get-base-path');
+    appBasePath = await ipcRenderer.invoke('get-base-path');
+    const basePath = appBasePath;
     console.log("Base Path:", basePath);
 
-    // 2. Load Apps
     // 2. Load Apps
     await loadAppsFromConfig(basePath);
 
     // 2.1 Preload Images for smooth performance
     preloadAssets();
 
-    // 3. Render
     // 3. Render
     renderWheelItems(); // Generate DOM elements once
 
@@ -317,8 +331,8 @@ function renderWheelItems() {
         };
 
         let content = '';
-        if (app.logo && fs.existsSync(app.logo)) {
-            content = `<img src="${app.logo.replace(/\\/g, '/')}" alt="${app.name}">`;
+        if (app.logoSrc) {
+            content = `<img src="${app.logoSrc}" alt="${app.name}">`;
         } else {
             content = `<div class="fallback-text">${app.name.substring(0, 1)}</div>`;
         }
@@ -428,8 +442,8 @@ function updateBackground(app) {
     const nextLayer = activeBgLayer === 1 ? bgLayer2 : bgLayer1;
     const currentLayer = activeBgLayer === 1 ? bgLayer1 : bgLayer2;
 
-    if (app.background && fs.existsSync(app.background)) {
-        const newBg = `url('${app.background.replace(/\\/g, '/')}')`;
+    if (app.bgSrc) {
+        const newBg = `url('${app.bgSrc}')`;
         // Optimization: Don't swap if same image
         if (nextLayer.style.backgroundImage !== newBg && currentLayer.style.backgroundImage !== newBg) {
             nextLayer.style.backgroundImage = newBg;

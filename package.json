@@ -1,6 +1,6 @@
 {
   "name": "xperian-app-launcher",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -24,7 +24,8 @@
       "!dist"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "icon.png"
     }
   },
   "keywords": [],

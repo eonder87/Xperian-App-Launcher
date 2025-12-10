@@ -27,7 +27,8 @@ function createWindow() {
             contextIsolation: false // Enabling this for easier prototyping
         },
         frame: false, // Remove window frame for full immersion
-        backgroundColor: '#000000'
+        backgroundColor: '#000000',
+        icon: path.join(__dirname, 'icon.png')
     });
 
     mainWindow.loadFile('index.html');
