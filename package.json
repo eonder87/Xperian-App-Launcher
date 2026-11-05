@@ -1,0 +1,53 @@
+{
+  "name": "xperian-app-launcher",
+  "version": "1.0.2",
+  "description": "Portable application launcher",
+  "main": "code/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.launcher.app",
+    "productName": "Xperian App Launcher",
+    "icon": "icon.png",
+    "compression": "maximum",
+    "electronLanguages": [
+      "en",
+      "tr"
+    ],
+    "files": [
+      "**/*",
+      "!data",
+      "!dist"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "icon.png"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "overrides": {
+    "@electron/asar": {
+      ".": "4.3.1",
+      "glob": "14.0.3"
+    },
+    "@electron/universal": "3.0.6",
+    "@electron/get": "5.1.0",
+    "minimatch": "11.0.4"
+  }
+}
