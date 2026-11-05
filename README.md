@@ -1,56 +1,52 @@
-# Antigravity (Xperian App Launcher)
+﻿# Xperian App Launcher
 
-**Antigravity**, diğer uygulamalarınızı (Kodi, Jellyfin, BigBox, Launchbox vb.) şık ve performanslı bir arayüzle başlatmanızı sağlayan modern bir Electron tabanlı uygulama başlatıcısıdır. PC'niz için bir "Konsol Arayüzü" (Frontend) olarak tasarlanmıştır.
+[English](#english) | [Türkçe](#türkçe)
 
-## 🌟 Özellikler
+## English
 
-*   **Modern "Çark" (Wheel) Navigasyonu:** Uygulamalar arasında ikon tabanlı, akıcı ve animasyonlu bir geçiş sistemi.
-*   **Yüksek Performanslı Görsellik:** 
-    *   Arka plan geçişleri için çift katmanlı (dual-layer) opaklık sistemi sayesinde takılmayan yumuşak geçişler.
-    *   Resimler için GPU tabanlı ön yükleme (preloading) ve kod çözme (decoding).
-*   **Dinamik Arka Planlar:** Her uygulama seçildiğinde arka plan ve tema o uygulamaya özel olarak değişir.
-*   **Ses Efektleri:** Web Audio API kullanılarak oluşturulmuş özel gezinme ve seçim sesleri.
-*   **Gamepad ve Klavye Desteği:** 
-    *   Klavye yön tuşları veya Gamepad (Joystick/D-PAD) ile tam kontrol.
-*   **Kiosk Modu:** Tam ekran çalışır ve sistem açılışında otomatik başlamaya uygundur.
-*   **INI Tabanlı Yapılandırma:** Yeni oyun veya uygulama eklemek için basit `.ini` dosyaları kullanılır.
+Xperian App Launcher is an Electron-based, fullscreen Windows application launcher. Browse applications with an animated wheel and launch them using a keyboard or gamepad.
 
-## 🚀 Kurulum ve Başlangıç
+### Features
 
-### Gereksinimler
-*   [Node.js](https://nodejs.org/) (Sürüm 16 veya üzeri önerilir)
-*   npm (Node.js ile birlikte gelir)
+- Animated navigation wheel with application logos and dynamic backgrounds.
+- Smooth background transitions, image preloading and navigation sounds.
+- Keyboard, mouse and gamepad support.
+- English and Turkish interface.
+- INI-based application configuration.
+- Portable Windows executable with external configuration and assets.
 
-### Yükleme
-Projeyi klonladıktan veya indirdikten sonra proje klasöründe bir terminal açın ve gerekli paketleri yükleyin:
+### Requirements and running
 
-```bash
+Development and building require Node.js **22.12.0 or newer** and npm. The packaged portable application does not require Node.js.
+
+```powershell
 npm install
-```
-
-### Çalıştırma (Geliştirici Modu)
-Uygulamayı geliştirme modunda başlatmak için:
-
-```bash
 npm start
 ```
 
-### Derleme (.exe Oluşturma)
-Uygulamayı dağıtılabilir bir Windows yürütülebilir dosyasına (.exe) dönüştürmek için:
+Alternatively, double-click `run.bat`. If `node_modules` is missing, it installs dependencies; run it again after installation to launch the application. If dependencies already exist, it starts the application immediately.
 
-```bash
-npm run dist
+### Project structure
+
+```text
+code/
+  main.js          Electron main process
+  renderer.js      Interface, configuration loading and input
+  index.html       Application page
+  style.css        Interface styles
+  clean-dist.ps1   Build artifact cleanup
+data/
+  config/          Application INI files
+  assets/          Logos and backgrounds
+icon.png
+package.json
+run.bat
+build.bat
 ```
-Oluşan dosya `dist/` klasöründe bulunacaktır.
 
-## ⚙️ Uygulama Ekleme (Yapılandırma)
+### Adding applications
 
-Uygulamaları başlatıcıya eklemek için uygulamanın kurulu olduğu dizindeki (veya proje içindeki) `data/config` klasörünü kullanın.
-
-1.  Uygulama kök dizininde `data/config` adında bir klasör oluşturun (eğer yoksa, ilk çalıştırmada otomatik oluşur).
-2.  Her uygulama için bu klasöre `.ini` uzantılı bir dosya ekleyin (örneğin: `kodi.ini`).
-
-**Örnek .ini Dosyası:**
+Create an `.ini` file in `data/config/`, for example `kodi.ini`:
 
 ```ini
 [Application]
@@ -58,54 +54,150 @@ Platform=Kodi
 Location=C:\Program Files\Kodi\kodi.exe
 
 [Assets]
-; Relative paths start from data/ (assets/ is next to config/).
-Clear Logo=assets/kodi_logo.png
-Background=assets/kodi_bg.jpg
+Clear Logo=assets/Kodi/Clear Logo/Kodi.png
+Background=assets/Kodi/Background/Kodi.jpg
 ```
 
-*   **Platform:** Ekranda görünecek isim.
-*   **Location:** Çalıştırılacak `.exe` dosyasının tam yolu.
-*   **Clear Logo:** Tekerlek üzerinde görünecek şeffaf logo (PNG önerilir).
-*   **Background:** Arka planda görünecek yüksek çözünürlüklü görsel.
+- `Platform`: application name displayed in the interface.
+- `Location`: full path to the executable to launch.
+- `Clear Logo`: logo image; a transparent PNG is recommended.
+- `Background`: background image.
 
-## 🎮 Kontroller
+Relative asset paths are resolved from `data/` first, then from the INI file's folder. Absolute paths are also supported. The example logo belongs at `data/assets/Kodi/Clear Logo/Kodi.png`. Missing logos use a letter as a fallback.
 
-| Eylem | Klavye | Gamepad (Xbox/Genel) |
-| :--- | :--- | :--- |
-| **Sola Git** | Sol Yön Tuşu | Sol Stick Sola / D-Pad Sol |
-| **Sağa Git** | Sağ Yön Tuşu | Sol Stick Sağa / D-Pad Sağ |
-| **Seç/Başlat** | Enter | A Tuşu (Güney Butonu) |
-| **Çıkış** | ESC | - |
+In development, `data/` stays in the project root. For portable use, keep it next to the portable executable.
 
-## 🛠️ Teknik Detaylar & Yapı
+### Controls
 
-Proje **Electron** üzerine kuruludur ve aşağıdaki ana bileşenlerden oluşur:
+| Action | Keyboard | Gamepad / mouse |
+| --- | --- | --- |
+| Previous application | Left arrow | Left stick / D-pad left |
+| Next application | Right arrow | Left stick / D-pad right |
+| Launch selected application | Enter | A / south button |
+| Select an application | — | Click its logo |
+| Exit | Escape | Click the exit button |
 
-*   **code/main.js:** Uygulamanın arka plan süreci. Pencere yönetimi, işletim sistemi ile etkileşim (uygulama başlatma, çıkış komutları) ve önbellek optimizasyonlarını yönetir.
-*   **code/renderer.js:** Arayüz mantığı. Çark animasyonu, arka plan geçişleri, ses efektleri, Gamepad dinleyicisi ve `.ini` dosyalarının okunması burada gerçekleşir.
-*   **code/style.css:** Tüm görsel efektler, cam (glassmorphism) efektleri ve animasyonlar.
+Use the language button in the upper-right corner to switch between English and Turkish.
 
-## ⚠️ Bilinen Sorunlar ve Çözümler
+### Building a portable executable
 
-*   **Arka Planda Titreme:** Eğer geçişlerde titreme olursa, uygulamanın GPU hızlandırma ayarlarını `main.js` içerisinde kontrol edin. Şu an performans için önbellekleme agresif bir şekilde kapalıdır.
-*   **Uygulama Açılmıyor:** `.ini` dosyasındaki `Location` yolunun doğru olduğundan ve dosya yolunda Türkçe karakter sorunu olmadığından emin olun.
+Run `build.bat`. It installs dependencies if needed, runs `npm run dist`, copies `data/` into `dist/`, and removes the temporary `win-unpacked`, `.icon-ico` and builder YAML files after a successful build.
+
+```text
+dist/
+  Xperian App Launcher-<version>-portable.exe
+  data/
+    config/
+    assets/
+```
+
+Distribute the executable together with `data/`. No setup wizard is required. Running `npm run dist` directly creates the portable executable but does not perform the batch file's data copy and cleanup steps.
+
+### Dependencies and troubleshooting
+
+Direct dependency versions are pinned in `package.json`; `package-lock.json` records the dependency tree. Overrides update selected build dependencies. `.npmrc` omits peer packages unused by the Windows portable target, including the Squirrel installer dependencies. Review that setting before adding other build targets.
+
+If an application does not launch, check its `Location` path. If images are missing, check the INI paths and the location of `data/`.
+
+Developer: **Xperian** · License: **ISC**
 
 ---
-**Geliştirici:** Xperian
-**Lisans:** ISC
 
-### Relative asset paths
+## Türkçe
 
-Keep `data/` next to the launcher executable (or in the project folder during development). INI files live in `data/config/`, and images live in `data/assets/`. Relative asset paths are resolved from `data/` first, then from the INI folder. Absolute paths are also supported. When distributing the application, copy `data/` next to the executable; it is excluded from the application archive.
+Xperian App Launcher, Electron tabanlı, tam ekran çalışan bir Windows uygulama başlatıcısıdır. Uygulamalar arasında animasyonlu çarkla gezinebilir, klavye veya gamepad ile uygulamaları başlatabilirsiniz.
 
-```ini
-[Assets]
-Clear Logo=assets/Atari 5200/Clear Logo/Atari 5200.png
-Background=assets/Atari 5200/Background/Atari 5200.jpg
+### Özellikler
+
+- Uygulama logoları ve dinamik arka planlarla animasyonlu çark menüsü.
+- Yumuşak arka plan geçişleri, görsel ön yükleme ve gezinme sesleri.
+- Klavye, fare ve gamepad desteği.
+- İngilizce ve Türkçe arayüz.
+- INI dosyalarıyla uygulama yapılandırması.
+- Harici yapılandırma ve görsel klasörleriyle portable Windows uygulaması.
+
+### Gereksinimler ve çalıştırma
+
+Geliştirme ve derleme için Node.js **22.12.0 veya üzeri** ve npm gerekir. Derlenmiş portable uygulamayı çalıştırmak için Node.js gerekmez.
+
+```powershell
+npm install
+npm start
 ```
 
-### Portable build
+Alternatif olarak `run.bat` dosyasına çift tıklayın. `node_modules` yoksa bağımlılıkları kurar; kurulumdan sonra uygulamayı açmak için dosyayı tekrar çalıştırın. Bağımlılıklar zaten varsa uygulamayı doğrudan başlatır.
 
-Run `build.bat` to create `dist/Xperian App Launcher-1.0.2-portable.exe` and copy `data/` alongside it. No installer is generated. Distribute the portable executable together with `data/`.
+### Proje yapısı
 
-Dependency versions are pinned. Overrides update the builder's ASAR, universal, download and glob dependencies. `.npmrc` omits peer packages because the Windows portable target does not use Squirrel.Windows; this avoids its deprecated installer dependencies. Revisit this setting before adding Squirrel targets. Node.js 22.12.0 or newer is required.
+```text
+code/
+  main.js          Electron ana süreci
+  renderer.js      Arayüz, yapılandırma okuma ve kontroller
+  index.html       Uygulama sayfası
+  style.css        Arayüz stilleri
+  clean-dist.ps1   Derleme ara dosyalarının temizliği
+data/
+  config/          Uygulama INI dosyaları
+  assets/          Logolar ve arka planlar
+icon.png
+package.json
+run.bat
+build.bat
+```
+
+### Uygulama ekleme
+
+`data/config/` içinde bir `.ini` dosyası oluşturun. Örneğin `kodi.ini`:
+
+```ini
+[Application]
+Platform=Kodi
+Location=C:\Program Files\Kodi\kodi.exe
+
+[Assets]
+Clear Logo=assets/Kodi/Clear Logo/Kodi.png
+Background=assets/Kodi/Background/Kodi.jpg
+```
+
+- `Platform`: arayüzde gösterilecek uygulama adı.
+- `Location`: başlatılacak uygulamanın tam dosya yolu.
+- `Clear Logo`: logo görseli; şeffaf PNG önerilir.
+- `Background`: arka plan görseli.
+
+Göreli görsel yolları önce `data/`, ardından INI dosyasının bulunduğu klasöre göre çözülür. Tam dosya yolları da desteklenir. Örnekteki logo `data/assets/Kodi/Clear Logo/Kodi.png` konumunda olmalıdır. Logo bulunamazsa yerine bir harf gösterilir.
+
+Geliştirme sırasında `data/` proje ana klasöründe kalır. Portable kullanımda bu klasörü portable EXE dosyasının yanında tutun.
+
+### Kontroller
+
+| İşlem | Klavye | Gamepad / fare |
+| --- | --- | --- |
+| Önceki uygulama | Sol yön tuşu | Sol analog / D-pad sol |
+| Sonraki uygulama | Sağ yön tuşu | Sol analog / D-pad sağ |
+| Seçili uygulamayı başlat | Enter | A / alt düğme |
+| Uygulama seç | — | Logoya tıkla |
+| Çıkış | Escape | Çıkış düğmesine tıkla |
+
+Sağ üstteki dil düğmesiyle İngilizce ve Türkçe arasında geçiş yapabilirsiniz.
+
+### Portable EXE oluşturma
+
+`build.bat` dosyasını çalıştırın. Gerekirse bağımlılıkları kurar, `npm run dist` komutunu çalıştırır, `data/` klasörünü `dist/` içine kopyalar ve başarılı derlemeden sonra geçici `win-unpacked`, `.icon-ico` ve builder YAML dosyalarını temizler.
+
+```text
+dist/
+  Xperian App Launcher-<version>-portable.exe
+  data/
+    config/
+    assets/
+```
+
+EXE dosyasını `data/` klasörüyle birlikte dağıtın. Kurulum sihirbazı gerekmez. Doğrudan `npm run dist` çalıştırmak portable EXE üretir ancak BAT dosyasındaki veri kopyalama ve temizlik adımlarını gerçekleştirmez.
+
+### Bağımlılıklar ve sorun giderme
+
+Doğrudan bağımlılıklar `package.json` içinde sabit sürümlerle tanımlıdır; `package-lock.json` bağımlılık ağacını kaydeder. Overrides alanı belirli derleme bağımlılıklarını günceller. `.npmrc`, Windows portable hedefinde kullanılmayan peer paketlerini ve bunlarla gelen Squirrel kurulum bağımlılıklarını kurulum dışında bırakır. Başka derleme hedefleri eklemeden önce bu ayarı gözden geçirin.
+
+Bir uygulama açılmıyorsa `Location` yolunu kontrol edin. Görseller yüklenmiyorsa INI yollarını ve `data/` klasörünün konumunu kontrol edin.
+
+Geliştirici: **Xperian** · Lisans: **ISC**
